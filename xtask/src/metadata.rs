@@ -87,3 +87,33 @@ pub fn get_no_web_features(sh: &Shell, crate_name: &str) -> anyhow::Result<Optio
 
     Ok(None)
 }
+
+/// Whether the given crate (or the workspace root, when `crate_name == "."`) declares
+/// the `web_server_capability` Cargo feature.
+pub fn crate_has_web_feature(sh: &Shell, crate_name: &str) -> anyhow::Result<bool> {
+    let metadata = get_cargo_metadata(sh)?;
+    let packages = metadata["packages"]
+        .as_array()
+        .context("Expected packages array in metadata")?;
+
+    for package in packages {
+        let name = package["name"]
+            .as_str()
+            .context("Expected package name as string")?;
+
+        let matches_crate = if crate_name == "." {
+            name == "zellij"
+        } else {
+            name == crate_name
+        };
+
+        if matches_crate {
+            let features = package["features"]
+                .as_object()
+                .context("Expected features object")?;
+            return Ok(features.contains_key("web_server_capability"));
+        }
+    }
+
+    Ok(false)
+}

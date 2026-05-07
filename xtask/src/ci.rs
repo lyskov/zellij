@@ -179,6 +179,18 @@ fn build_release(sh: &Shell, no_web: bool) -> anyhow::Result<()> {
                         .run()
                         .map_err(anyhow::Error::new),
                 }
+            } else if metadata::crate_has_web_feature(sh, ".")
+                .context("Failed to check web features for build-release")?
+            {
+                // `web_server_capability` is no longer in the workspace's default
+                // features; opt into it here so the existing release flow keeps
+                // producing web-enabled artifacts.
+                cmd!(
+                    sh,
+                    "{cargo} build --verbose --release --features web_server_capability"
+                )
+                .run()
+                .map_err(anyhow::Error::new)
             } else {
                 cmd!(sh, "{cargo} build --verbose --release")
                     .run()
@@ -270,6 +282,18 @@ fn cross_compile(sh: &Shell, target: &OsString, no_web: bool) -> anyhow::Result<
                             .map_err(anyhow::Error::new)
                     },
                 }
+            } else if metadata::crate_has_web_feature(sh, ".")
+                .context("Failed to check web features for cross compilation")?
+            {
+                // `web_server_capability` is no longer in the workspace's default
+                // features; opt into it here so the existing cross-compiled release
+                // flow keeps producing web-enabled artifacts.
+                cmd!(
+                    sh,
+                    "{cross} build --verbose --release --target {target} --features web_server_capability"
+                )
+                .run()
+                .map_err(anyhow::Error::new)
             } else {
                 cmd!(sh, "{cross} build --verbose --release --target {target}")
                     .run()

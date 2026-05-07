@@ -106,6 +106,14 @@ pub fn build(sh: &Shell, flags: flags::Build) -> anyhow::Result<()> {
                         // Crate doesn't have web features, build normally
                     },
                 }
+            } else if metadata::crate_has_web_feature(sh, crate_name)
+                .context("Failed to check web features")?
+            {
+                // `web_server_capability` is no longer in the workspace's default features,
+                // so opt into it here to preserve the historical behavior of
+                // `cargo xtask build` (and thus the published CI/release flows that drive
+                // through xtask without `--no-web`).
+                base_cmd = base_cmd.arg("--features").arg("web_server_capability");
             }
             base_cmd.run().with_context(err_context)?;
         }
